@@ -2,11 +2,19 @@ require("dotenv").config({ path: "../.env" });
 
 function validateShortId(shortId) {
   //TODO: write some rules
+  const charPool =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
+  for (let i = 0; i < shortId.length; i++) {
+    if (!charPool.contains(shortId.charAt(i))) {
+      return false;
+    }
+  }
   return true;
 }
 
 function validateUrl(url) {
   //TODO: write some rules
+
   return true;
 }
 

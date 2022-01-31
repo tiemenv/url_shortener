@@ -25,6 +25,7 @@ router.get("/:shortUrlId", async (req, res) => {
         urlObject.statistics.visits >= urlObject.requestQuota
       ) {
         res.status(429).json("Exceeded request quota for this URL");
+        return;
       }
 
       //add click in statistics and save
@@ -40,6 +41,8 @@ router.get("/:shortUrlId", async (req, res) => {
         date: Date.now(),
       });
       console.log("urlObject to save: ", urlObject);
+
+      //TODO: figure out why the hell this doesn't save
       await urlObject.save();
       console.log("SAVED");
       return res.redirect(urlObject.originalUrl);
