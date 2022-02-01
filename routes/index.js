@@ -68,7 +68,7 @@ router.get("/stats/:shortUrlId", async (req, res) => {
         return;
       }
 
-      //TODO: retrieve stats and make some nice numbers
+      //retrieve stats and make some nice numbers
       const stats = urlObject.statistics;
       const numberOfVisits = stats.length;
       const quota = urlObject.requestQuota;
@@ -77,17 +77,13 @@ router.get("/stats/:shortUrlId", async (req, res) => {
 
       for (let i = 0; i < numberOfVisits; i++) {
         const stat = stats[i];
-        console.log("stat foreach: ", stat);
         const ip = stat.clientIp;
         //returns undefined if not found in Map
         if (uniqueVisitorsMap.has(ip)) {
-          console.log("HAS");
           let visits = uniqueVisitorsMap.get(ip);
           visits++;
-          console.log("visits: ", visits);
           uniqueVisitorsMap.set(ip, visits);
         } else {
-          console.log("HAS NOT");
           uniqueVisitorsMap.set(ip, 1);
         }
       }
@@ -119,6 +115,11 @@ router.post("/", async (req, res) => {
   const { originalUrl } = req.body;
   const baseShortUrl = process.env.BASE_URL;
 
+  let quota = null;
+  if (req.body.hasOwnProperty("quota")) {
+    quota = req.body.quota;
+  }
+
   const shortUrlId = utils.generateShortId();
   if (utils.validateUrl(originalUrl)) {
     urlObject = new Url({
@@ -126,6 +127,9 @@ router.post("/", async (req, res) => {
       baseShortUrl,
       shortUrlId,
     });
+    if (quota > 0) {
+      urlObject.requestQuota = quota;
+    }
 
     await urlObject.save();
     const shortUrl = baseShortUrl + "/" + shortUrlId;
@@ -137,20 +141,31 @@ router.post("/", async (req, res) => {
 
 //CREATE new alias
 router.post("/alias", async (req, res) => {
-  const { originalShortId, aliasShortId } = req.body;
+  const originalShortId = req.body.originalId;
+  const aliasShortId = req.body.aliasId;
+  let quota = null;
+  if (req.body.hasOwnProperty("quota")) {
+    quota = req.body.quota;
+  }
 
   // check if original short url exists
   try {
-    let urlObject = await Url.findOne({
+    let urlObjectOriginal = await Url.findOne({
       shortUrlId: originalShortId,
       deleted: false,
     });
     //fail fast
-    if (!urlObject) {
+    if (!urlObjectOriginal) {
       res.status(404).json("Url not found");
     } else {
-      //TODO: edit Url
-      urlObject.shortUrlId = aliasShortId;
+      urlObject = new Url({
+        originalUrl: urlObjectOriginal.originalUrl,
+        baseShortUrl: urlObjectOriginal.baseShortUrl,
+        shortUrlId,
+      });
+      if (quota > 0) {
+        urlObject.requestQuota = quota;
+      }
       await urlObject.save();
       res.status(201).json(urlObject);
     }
@@ -165,6 +180,11 @@ router.post("/alias", async (req, res) => {
 router.put("/:oldShortUrlId", async (req, res) => {
   const { oldShortUrlId } = req.params;
   const newShortUrlId = req.body.id;
+
+  let quota = null;
+  if (req.body.hasOwnProperty("quota")) {
+    quota = req.body.quota;
+  }
 
   //proposed alias valid short id?
   if (!utils.validateShortId(newShortUrlId)) {
@@ -199,6 +219,9 @@ router.put("/:oldShortUrlId", async (req, res) => {
           } else {
             //all OK, let's update and save
             urlObject.shortUrlId = newShortUrlId;
+            if (quota > 0) {
+              urlObject.requestQuota = quota;
+            }
             await urlObject.save();
             const shortUrl =
               urlObject.baseShortUrl + "/" + urlObject.shortUrlId;
@@ -206,7 +229,6 @@ router.put("/:oldShortUrlId", async (req, res) => {
             res.status(200).json({ shortUrl, originalUrl });
           }
         } catch (err) {
-          //TODO: TEST this syntax!!
           throw err;
         }
       }
