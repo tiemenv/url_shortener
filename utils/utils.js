@@ -1,7 +1,7 @@
 require("dotenv").config({ path: "../.env" });
 
 function validateShortId(shortId) {
-  //TODO: write some rules
+  //allow only alphanumeric characters, dash and underscore
   const charPool =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
   for (let i = 0; i < shortId.length; i++) {

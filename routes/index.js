@@ -1,10 +1,12 @@
 const Express = require("express");
 const requestIp = require("request-ip");
+const { mapReduce } = require("../models/Url");
 const router = Express.Router();
 const Url = require("../models/Url");
 const utils = require("../utils/utils");
 require("dotenv").config({ path: "../.env" });
 
+//GET original url from short url
 router.get("/:shortUrlId", async (req, res) => {
   try {
     const urlObject = await Url.findOne({ shortUrlId: req.params.shortUrlId });
@@ -22,21 +24,19 @@ router.get("/:shortUrlId", async (req, res) => {
       //check quota
       if (
         urlObject.requestQuota > 0 &&
-        urlObject.statistics.visits >= urlObject.requestQuota
+        urlObject.statistics.length >= urlObject.requestQuota
       ) {
         res.status(429).json("Exceeded request quota for this URL");
         return;
       }
 
-      //add click in statistics and save
-      urlObject.statistics.visits++;
-      urlObject.statistics.lastVisited = Date.now();
-
       //collect analytics data
       const clientIp = requestIp.getClientIp(req);
       console.log("determined client ip: ", clientIp);
 
-      urlObject.statistics.clicks.push({
+      //lets keep the statistics a simple object pushed to an array for write efficiency
+      //assuming these statistics will be more write than read heavy
+      urlObject.statistics.push({
         clientIp,
         date: Date.now(),
       });
@@ -46,6 +46,67 @@ router.get("/:shortUrlId", async (req, res) => {
       await urlObject.save();
       console.log("SAVED");
       return res.redirect(urlObject.originalUrl);
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Server Error");
+  }
+});
+
+//GET statistics for certain short url
+router.get("/stats/:shortUrlId", async (req, res) => {
+  try {
+    const urlObject = await Url.findOne({ shortUrlId: req.params.shortUrlId });
+    //fail fast
+    if (!urlObject) {
+      res.status(404).json("Short URL not found");
+      return;
+    } else {
+      //check if deleted
+      if (urlObject.deleted) {
+        res.status(404).json("Shortened URL has been deleted");
+        return;
+      }
+
+      //TODO: retrieve stats and make some nice numbers
+      const stats = urlObject.statistics;
+      const numberOfVisits = stats.length;
+      const quota = urlObject.requestQuota;
+      //TODO: optimize
+      let uniqueVisitorsMap = new Map();
+
+      for (let i = 0; i < numberOfVisits; i++) {
+        const stat = stats[i];
+        console.log("stat foreach: ", stat);
+        const ip = stat.clientIp;
+        //returns undefined if not found in Map
+        if (uniqueVisitorsMap.has(ip)) {
+          console.log("HAS");
+          let visits = uniqueVisitorsMap.get(ip);
+          visits++;
+          console.log("visits: ", visits);
+          uniqueVisitorsMap.set(ip, visits);
+        } else {
+          console.log("HAS NOT");
+          uniqueVisitorsMap.set(ip, 1);
+        }
+      }
+      console.log("map at the end: ", uniqueVisitorsMap);
+
+      const uniqueVisitors = Object.fromEntries(uniqueVisitorsMap);
+      const numberOfUniqueVisits = Object.keys(uniqueVisitors).length;
+
+      const resObject = {
+        visits: numberOfVisits,
+        uniqueVisits: numberOfUniqueVisits,
+        quota,
+        //node v12 feature
+        uniqueVisitors,
+        //passes time as an UNIX timestamp
+        allVisits: stats,
+      };
+      console.log("resObject: ", resObject);
+      res.status(200).json(resObject);
     }
   } catch (err) {
     console.log(err);
