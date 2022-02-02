@@ -1,7 +1,6 @@
-const Express = require("express");
+const express = require("express");
 const requestIp = require("request-ip");
-const { mapReduce } = require("../models/Url");
-const router = Express.Router();
+const router = express.Router();
 const Url = require("../models/Url");
 const utils = require("../utils/utils");
 require("dotenv").config({ path: "../.env" });
@@ -112,6 +111,7 @@ router.get("/stats/:shortUrlId", async (req, res) => {
 
 //CREATE new url
 router.post("/", async (req, res) => {
+  console.log("3", req.body);
   const { originalUrl } = req.body;
   const baseShortUrl = process.env.BASE_URL;
 
@@ -161,7 +161,7 @@ router.post("/alias", async (req, res) => {
       urlObject = new Url({
         originalUrl: urlObjectOriginal.originalUrl,
         baseShortUrl: urlObjectOriginal.baseShortUrl,
-        shortUrlId,
+        shortUrlId: aliasShortId,
       });
       if (quota > 0) {
         urlObject.requestQuota = quota;
