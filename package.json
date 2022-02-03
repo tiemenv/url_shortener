@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "npm start": "node app.js"
   },
   "author": "Tiemen Vermote",
@@ -17,6 +17,7 @@
     "serverless-http": "^2.7.0"
   },
   "devDependencies": {
+    "jest": "^27.4.7",
     "serverless-offline": "^8.4.0",
     "serverless-offline-dotenv": "^0.4.0"
   }

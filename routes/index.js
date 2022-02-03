@@ -61,7 +61,7 @@ router.get("/stats/:shortUrlId", async (req, res) => {
       res.status(404).json("Short URL not found");
       return;
     } else {
-      //check if deleted
+      //check if deleted?
       if (urlObject.deleted) {
         res.status(404).json("Shortened URL has been deleted");
         return;
@@ -88,14 +88,16 @@ router.get("/stats/:shortUrlId", async (req, res) => {
       }
       console.log("map at the end: ", uniqueVisitorsMap);
 
+      //node v12 feature
       const uniqueVisitors = Object.fromEntries(uniqueVisitorsMap);
       const numberOfUniqueVisits = Object.keys(uniqueVisitors).length;
+
+      //TODO: more stats like lastVisited or "visitors in the last X days" can be derived on the frontend
 
       const resObject = {
         visits: numberOfVisits,
         uniqueVisits: numberOfUniqueVisits,
         quota,
-        //node v12 feature
         uniqueVisitors,
         //passes time as an UNIX timestamp
         allVisits: stats,

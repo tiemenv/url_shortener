@@ -1,11 +1,12 @@
-require("dotenv").config({ path: "../.env" });
-
 function validateShortId(shortId) {
+  if (shortId.length > 64) {
+    return false;
+  }
   //allow only alphanumeric characters, dash and underscore
   const charPool =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
   for (let i = 0; i < shortId.length; i++) {
-    if (!charPool.contains(shortId.charAt(i))) {
+    if (!charPool.includes(shortId.charAt(i))) {
       return false;
     }
   }
@@ -13,9 +14,15 @@ function validateShortId(shortId) {
 }
 
 function validateUrl(url) {
-  //TODO: write some rules
+  let urlObject;
 
-  return true;
+  try {
+    urlObject = new URL(url);
+  } catch (_) {
+    return false;
+  }
+
+  return urlObject.protocol === "http:" || urlObject.protocol === "https:";
 }
 
 //I'm writing my own short url generator.
@@ -25,7 +32,7 @@ function validateUrl(url) {
 //On top of that, in something like the NPM ecosystem, I import packages only when they provide a lot of added value. Dependency management and auditing can easily become extremely overwhelming, and NPM has a horrible security reputation with multiple upstream vulnerabilities in the past. Knowing this, I'll gladly create my own short ids, a simple enough task.
 function generateShortId() {
   //10 alphanumeric characters should be enough, length can be set in .env
-  const idLength = process.env.SHORT_ID_LENGTH;
+  const idLength = 10;
   const charPool =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
   let id = "";
