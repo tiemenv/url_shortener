@@ -41,7 +41,6 @@ router.get("/:shortUrlId", async (req, res) => {
       });
       console.log("urlObject to save: ", urlObject);
 
-      //TODO: figure out why the hell this doesn't save
       await urlObject.save();
       console.log("SAVED");
       return res.redirect(urlObject.originalUrl);
@@ -71,7 +70,7 @@ router.get("/stats/:shortUrlId", async (req, res) => {
       const stats = urlObject.statistics;
       const numberOfVisits = stats.length;
       const quota = urlObject.requestQuota;
-      //TODO: optimize
+      //TODO: optimize?
       let uniqueVisitorsMap = new Map();
 
       for (let i = 0; i < numberOfVisits; i++) {
@@ -86,7 +85,6 @@ router.get("/stats/:shortUrlId", async (req, res) => {
           uniqueVisitorsMap.set(ip, 1);
         }
       }
-      console.log("map at the end: ", uniqueVisitorsMap);
 
       //node v12 feature
       const uniqueVisitors = Object.fromEntries(uniqueVisitorsMap);
@@ -102,7 +100,6 @@ router.get("/stats/:shortUrlId", async (req, res) => {
         //passes time as an UNIX timestamp
         allVisits: stats,
       };
-      console.log("resObject: ", resObject);
       res.status(200).json(resObject);
     }
   } catch (err) {
@@ -113,17 +110,20 @@ router.get("/stats/:shortUrlId", async (req, res) => {
 
 //CREATE new url
 router.post("/", async (req, res) => {
-  console.log("3", req.body);
   const { originalUrl } = req.body;
   const baseShortUrl = process.env.BASE_URL;
 
+  //optional quota parameter
   let quota = null;
   if (req.body.hasOwnProperty("quota")) {
     quota = req.body.quota;
   }
 
   const shortUrlId = utils.generateShortId();
-  if (utils.validateUrl(originalUrl)) {
+  if (!utils.validateUrl(originalUrl)) {
+    res.status(400).json("Invalid Original Url");
+    return;
+  } else {
     urlObject = new Url({
       originalUrl,
       baseShortUrl,
@@ -134,10 +134,9 @@ router.post("/", async (req, res) => {
     }
 
     await urlObject.save();
+    //send the full shortUrl back to the user
     const shortUrl = baseShortUrl + "/" + shortUrlId;
     res.json({ shortUrl, originalUrl });
-  } else {
-    res.status(400).json("Invalid Original Url");
   }
 });
 
@@ -252,7 +251,7 @@ router.delete("/:shortUrlId", async (req, res) => {
       res.status(404).json("Url doesn't exist");
       return;
     } else {
-      //delete is actually update
+      //delete is actually update, just set the "deleted" flag to true
       urlObject.deleted = true;
       await urlObject.save();
       res.status(200).json("Deleted");
