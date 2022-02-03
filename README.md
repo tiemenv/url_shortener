@@ -2,6 +2,8 @@
 
 url-shortener is a serverless application meant to provide short URLs that redirect to other URLs.
 
+_Example hosted at: https://ho72ako0b3.execute-api.us-east-1.amazonaws.com/dev_
+
 ## Endpoints
 
 ### GET /:shortUrlId
